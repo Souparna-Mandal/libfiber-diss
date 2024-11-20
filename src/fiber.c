@@ -8,9 +8,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdatomic.h>
+#include <stdbool.h>
 
 #include "fiber_manager.h"
 #include "mpmc_lifo.h"
+
+// For uSCL implementef by Souparna
+void* __fiber_keys[FIBER_KEYS_MAX] = {0};
+int __fiber_key_count = 0;
 
 void fiber_mark_completed(fiber_t* the_fiber, void* result) {
   atomic_store_explicit(&the_fiber->result, result, memory_order_release);
@@ -219,4 +225,55 @@ int fiber_detach(fiber_t* f) {
     return FIBER_ERROR;
   }
   return FIBER_SUCCESS;
+
+
+  // Souparna's Implementation of fiber_key 
+
+  int fiber_key_create(fiber_key_t *key) {
+  /* Find a slot in __pthread_keys which is unused.  */
+  for (size_t cnt = 0; cnt < FIBER_KEYS_MAX; ++cnt)
+    {
+      if (__fiber_keys[cnt] != NULL )
+	{
+      /* Return the key to the caller.  */
+      *key = cnt;
+      /* The call succeeded.  */
+      return FIBER_SUCCESS;
+	}
+    }
+  return FIBER_ERROR;
+}
+
+
+int fiber_setspecific (pthread_key_t key, const void *value)
+{
+  if (key >= FIBER_KEYS_MAX || key < 0) {
+        return FIBER_ERROR;  // Invalid key
+    }
+
+  __fiber_keys[key] = (void*)value;
+
+  return FIBER_SUCCESS;
+}
+
+
+void *fiber_getspecific (pthread_key_t key)
+{
+  if (key >= FIBER_KEYS_MAX || key < 0) {
+        return NULL;  // Invalid key
+    }
+
+  return __fiber_keys[key] ;
+}
+
+int fiber_key_delete (pthread_key_t key)
+{
+  if (key >= FIBER_KEYS_MAX || key < 0) {
+        return FIBER_ERROR;  // Invalid key
+    }
+
+    __fiber_keys[key] = NULL;
+
+    return FIBER_SUCCESS;
+}
 }

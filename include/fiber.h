@@ -8,9 +8,15 @@
 
 #include "fiber_context.h"
 #include "mpsc_fifo.h"
+// Souparna's Implementation of fiber_key_t analogues to pthread_key_t
+#define FIBER_KEYS_MAX 1024
 
 typedef int fiber_state_t;
 
+// Souparna's Implementation of fiber_key_t analogues to pthread_key_t
+typedef unsigned int fiber_key_t;
+extern void* __fiber_keys[FIBER_KEYS_MAX];
+extern int __fiber_key_count;
 struct fiber_manager;
 
 #define FIBER_STATE_RUNNING (1)
@@ -62,6 +68,15 @@ extern int fiber_tryjoin(fiber_t* f, void** result);
 extern int fiber_yield();
 
 extern int fiber_detach(fiber_t* f);
+
+// Souparna's Implementation of fiber key
+extern int fiber_key_create (fiber_key_t *__key);
+/* Destroy KEY.  */
+extern int fiber_key_delete (fiber_key_t __key) ;
+/* Return current value of the thread-specific data slot identified by KEY.  */
+extern void *fiber_getspecific (fiber_key_t __key) ;
+/* Store POINTER in the thread-specific data slot identified by KEY. */
+extern int fiber_setspecific(fiber_key_t __key, const void* __pointer);
 
 #ifdef __cplusplus
 }
